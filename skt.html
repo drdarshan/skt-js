@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sanskrit (SKT) WASM Processor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Use Inter font -->
+    <!-- CodeMirror 5 (classic) for LaTeX syntax highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/hint/show-hint.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/stex/stex.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/hint/show-hint.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6; /* cool-gray-100 */
+        }
+        /* Custom scrollbar for a cleaner look in textareas */
+        textarea::-webkit-scrollbar { width: 6px; }
+        textarea::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+        textarea::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 10px; }
+        textarea::-webkit-scrollbar-thumb:hover { background: #a1a1a1; }
+    </style>
+</head>
+<body class="h-full antialiased text-gray-800 p-4 sm:p-8">
+
+    <div class="max-w-7xl mx-auto h-full flex flex-col">
+        <!-- Header -->
+        <header class="mb-4">
+            <h1 class="text-3xl sm:text-4xl font-extrabold text-indigo-700">Sanskrit (SKT) WASM Processor</h1>
+            <p class="text-gray-600 mt-2">Run the `skt.c` LaTeX pre-processor, compiled to WebAssembly, directly in your browser.</p>
+        </header>
+
+        <!-- Control Panel -->
+        <div class="mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-3 sm:space-y-0 bg-white p-4 rounded-xl shadow-lg">
+            <div id="status-message" class="flex items-center space-x-3">
+                <div id="status-indicator" class="w-4 h-4 rounded-full bg-yellow-400 animate-pulse"></div>
+                <span class="text-sm font-medium text-gray-700">Status: Waiting for WASM module...</span>
+            </div>
+            <button id="process-button" 
+                    disabled
+                    class="w-full sm:w-auto px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 transition duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed">
+                <svg id="button-spinner" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span id="button-text">Process Text</span>
+            </button>
+        </div>
+
+        <!-- Main Content: Editors -->
+        <main class="flex-grow grid grid-cols-1 lg:grid-cols-2 gap-6 h-full min-h-[60vh]">
+            
+            <!-- Input Area -->
+            <div class="flex flex-col bg-white p-4 rounded-xl shadow-lg">
+                <label for="input-text" class="text-lg font-semibold text-gray-800 mb-2">Input File (`input.skt`)</label>
+                <textarea id="input-text"
+                    class="w-full flex-grow p-4 border border-gray-300 rounded-lg focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition duration-150 ease-in-out text-sm font-mono resize-none"
+                    placeholder="Paste your .skt file content here... Example:
+\documentclass[12pt]{article}
+\usepackage[larger,iitalic,uitalic]{skt}
+\begin{document}
+{\skt te_ja_svi naa_vadhii!tamastu|}
+\end{document}
+">\documentclass[12pt]{article}
+\usepackage[larger,iitalic,uitalic]{skt}
+\begin{document}
+{\sktb te_ja_svi naa_vadhii!tamastu|}
+\end{document}
+</textarea>
+            </div>
+
+            <!-- Output Area -->
+            <div class="flex flex-col bg-white p-4 rounded-xl shadow-lg">
+                <label for="output-text" class="text-lg font-semibold text-gray-800 mb-2">Output File (`output.tex`)</label>
+                <textarea id="output-text" readonly
+                    class="w-full flex-grow p-4 border border-gray-300 rounded-lg bg-gray-50 text-gray-700 text-sm font-mono resize-none"
+                    placeholder="Processed LaTeX output will appear here..."></textarea>
+            </div>
+        </main>
+    </div>
+
+    <!-- 
+      [DELETED]
+    -->
+
+    <script>
+        // --- WASM SCRIPTING ---
+
+        const inputTextarea = document.getElementById('input-text');
+        const outputTextarea = document.getElementById('output-text');
+        // CodeMirror 5 editor instances (or null if fallback to textareas)
+        let inputEditor = null;
+        let outputEditor = null;
+
+        // Initialize CodeMirror 5 (classic) editors. Falls back to plain textareas if CM5 not available.
+        function initEditors() {
+            try {
+                if (typeof CodeMirror !== 'undefined') {
+                    // LaTeX command list for autocomplete
+                    const latexCommands = [
+                        'documentclass','usepackage','begin','end','section','subsection','caption',
+                        'label','ref','cite','emph','textbf','textit','item','itemize','enumerate',
+                        'skt','sktb','sktx','sktX','sktt','author','title','date','maketitle',
+                        'table','figure','includegraphics','footnote','mathrm','mathbf','mathbb'
+                    ];
+
+                    function latexHint(cm) {
+                        const cur = cm.getCursor();
+                        const line = cm.getLine(cur.line);
+                        let start = cur.ch;
+                        // find start of command (backslash)
+                        while (start > 0 && /[A-Za-z]/.test(line.charAt(start-1))) start--;
+                        if (start > 0 && line.charAt(start-1) === '\\') {
+                            const from = {line: cur.line, ch: start-1};
+                            const to = cur;
+                            const prefix = line.slice(start, cur.ch);
+                            const list = latexCommands
+                                .filter(c => c.indexOf(prefix) === 0)
+                                .map(c => ({text: '\\' + c, displayText: '\\' + c}));
+                            return {list: list.length ? list : latexCommands.map(c=>({text:'\\'+c,displayText:'\\'+c})), from, to};
+                        }
+                        return {list: [], from: cur, to: cur};
+                    }
+
+                    inputEditor = CodeMirror.fromTextArea(inputTextarea, {
+                        mode: 'stex',
+                        lineNumbers: true,
+                        lineWrapping: true,
+                        indentUnit: 2,
+                        extraKeys: { 'Ctrl-Space': function(cm) { CodeMirror.showHint(cm, latexHint, {completeSingle: false}); } },
+                        hintOptions: { hint: latexHint, completeSingle: false }
+                    });
+                    // trigger autocomplete on typing after backslash or letters
+                    inputEditor.on('inputRead', function(cm, change) {
+                        if (change.text[0] && /[A-Za-z\\]/.test(change.text[0])) {
+                            CodeMirror.showHint(cm, latexHint, {completeSingle: false});
+                        }
+                    });
+                    outputEditor = CodeMirror.fromTextArea(outputTextarea, {
+                        mode: 'stex',
+                        lineNumbers: true,
+                        lineWrapping: true,
+                        readOnly: true,
+                    });
+                    // Ensure editors fill available space
+                    try { inputEditor.setSize('100%', '100%'); } catch (e) {}
+                    try { outputEditor.setSize('100%', '100%'); } catch (e) {}
+                }
+            } catch (e) {
+                console.warn('CodeMirror 5 init failed, falling back to textareas', e);
+                inputEditor = null;
+                outputEditor = null;
+                inputTextarea.style.display = '';
+                outputTextarea.style.display = '';
+            }
+        }
+
+        // Initialize editors
+        initEditors();
+        const statusMessage = document.getElementById('status-message').querySelector('span');
+        const statusIndicator = document.getElementById('status-indicator');
+        const processButton = document.getElementById('process-button');
+        const buttonText = document.getElementById('button-text');
+        const buttonSpinner = document.getElementById('button-spinner');
+
+        // Input/Output filenames for the virtual file system
+        const IN_FILENAME = "/input.skt";
+        const OUT_FILENAME = "/output.tex";
+        
+        // This `Module` object is read by the `skt.js` script.
+        // We set `noInitialRun: true` so the compiled program's main()
+        // is NOT invoked automatically on module load. The page will
+        // call `Module.callMain([...])` when the user clicks the button.
+        var Module = {
+            noInitialRun: true,
+            onRuntimeInitialized: function() {
+                statusMessage.textContent = 'Status: WASM Module Loaded. Ready.';
+                statusIndicator.classList.remove('bg-yellow-400', 'animate-pulse');
+                statusIndicator.classList.add('bg-green-500');
+                processButton.disabled = false;
+                console.log('Emscripten runtime initialized.');
+            }
+        };
+
+        processButton.addEventListener('click', processSanskritText);
+
+        async function processSanskritText() {
+            setLoadingState(true);
+            if (outputEditor && typeof outputEditor.setValue === 'function') {
+                outputEditor.setValue('');
+            } else {
+                outputTextarea.value = '';
+            }
+
+            try {
+                const inputContent = (inputEditor && typeof inputEditor.getValue === 'function')
+                    ? inputEditor.getValue()
+                    : inputTextarea.value;
+                
+                // --- STEP 1: Write to Virtual File System ---
+                // Use the Emscripten 'FS' object to create a file in the 
+                // virtual memory that the C program can access.
+                Module.FS.writeFile(IN_FILENAME, inputContent);
+                statusMessage.textContent = 'Status: Wrote input.skt to virtual file system...';
+
+                // --- STEP 2: Call the C main() function ---
+                // We use ccall to run the compiled C main function.
+                // int main(int argc, char *argv[])
+                //
+                // We simulate the command: ./skt input.skt output.tex
+                // argc = 3
+                // argv = ["skt", "input.skt", "output.tex"]
+                
+                statusMessage.textContent = 'Status: Executing C main() function via WASM...';
+                
+                // Use Module.callMain to run the program with argv; we previously
+                // relied on Module.ccall which does not correctly construct argv
+                // for a C "main(int argc, char** argv)" in this build. Also,
+                // because we set noInitialRun above, the module won't auto-run.
+                let exitCode = 0;
+                try {
+                    Module.callMain([IN_FILENAME, OUT_FILENAME]);
+                } catch (e) {
+                    // Emscripten signals program exit by throwing an ExitStatus
+                    // object which includes a `status` property. Detect that and
+                    // treat it as the program's exit code; rethrow other errors.
+                    if (e && typeof e === 'object' && 'status' in e) {
+                        exitCode = e.status;
+                    } else {
+                        throw e;
+                    }
+                }
+
+                statusMessage.textContent = `Status: C program finished with exit code ${exitCode}.`;
+
+                if (exitCode !== 0) {
+                    throw new Error(`WASM program exited with non-zero code: ${exitCode}`);
+                }
+
+                // --- STEP 3: Read from Virtual File System ---
+                // The C program wrote its output to 'output.tex' in virtual memory.
+                // Now we read that file back out.
+                const outputContent = Module.FS.readFile(OUT_FILENAME, { encoding: 'utf8' });
+
+                if (outputEditor && typeof outputEditor.setValue === 'function') {
+                    outputEditor.setValue(outputContent);
+                } else {
+                    outputTextarea.value = outputContent;
+                }
+                statusMessage.textContent = 'Status: Success! Processed output.tex displayed.';
+                statusIndicator.classList.add('bg-green-500');
+                statusIndicator.classList.remove('bg-red-500');
+
+            } catch (error) {
+                const errMsg = `ERROR DURING PROCESSING:\n${error.message}\n\nCheck console (F12) for more details.`;
+                if (outputEditor && typeof outputEditor.setValue === 'function') {
+                    outputEditor.setValue(errMsg);
+                } else {
+                    outputTextarea.value = errMsg;
+                }
+                statusMessage.textContent = 'Status: Error occurred. Check output.';
+                statusIndicator.classList.add('bg-red-500');
+                statusIndicator.classList.remove('bg-green-500');
+                console.error("WASM Processing Error:", error);
+            } finally {
+                setLoadingState(false);
+                // Clean up virtual files
+                try {
+                    Module.FS.unlink(IN_FILENAME);
+                    Module.FS.unlink(OUT_FILENAME);
+                } catch (e) {
+                    // ignore cleanup errors
+                }
+            }
+        }
+        
+        function setLoadingState(isLoading) {
+            processButton.disabled = isLoading;
+            if (isLoading) {
+                buttonText.textContent = "Processing...";
+                buttonSpinner.classList.remove('hidden');
+                statusIndicator.classList.add('bg-yellow-400', 'animate-pulse');
+                 statusIndicator.classList.remove('bg-green-500', 'bg-red-500');
+            } else {
+                buttonText.textContent = "Process Text";
+                buttonSpinner.classList.add('hidden');
+                statusIndicator.classList.remove('bg-yellow-400', 'animate-pulse');
+            }
+        }
+
+    </script>
+
+    <!-- 
+      STEP 1: Load the Emscripten-generated JS file.
+      This file (skt.js) MUST be in the same directory as this HTML file.
+      It will automatically find and load 'skt.wasm'.
+      
+      FIX: This tag is moved *after* the inline script above,
+      so that the `Module` object is defined before this script runs.
+    -->
+    <script src="skt.js"></script>
+
+</body>
+</html>
