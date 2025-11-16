@@ -61,6 +61,7 @@ jobs:
         git diff --quiet && git diff --staged --quiet || (git commit -m "Build: Compile Tailwind CSS and WASM artifacts" && git push)
 
     - name: Deploy to Netlify
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
       uses: nwtgck/actions-netlify@v2
       with:
         publish-dir: './dist'
