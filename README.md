@@ -7,4 +7,4 @@ The web app is pretty minimal but is sufficient for most Sanskrit typesetting ta
 
 I am stil working on making aspects like error handling more robust but if you have any requests or feedback, please file an issue! 
 
-![Lokah Samasthah Sukhino Bhavantu](skt-js-img.svg)
+![Lokah Samasthah Sukhino Bhavantu](skt-js-img.png)
