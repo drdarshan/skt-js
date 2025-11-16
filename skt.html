@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sanskrit (SKT) WASM Processor</title>
+    <title>Online SKT Processor</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Use Inter font -->
     <!-- CodeMirror 5 (classic) for LaTeX syntax highlighting -->
@@ -30,6 +30,11 @@
         textarea::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
         textarea::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 10px; }
         textarea::-webkit-scrollbar-thumb:hover { background: #a1a1a1; }
+        
+        /* Placeholder styling */
+        textarea::placeholder {
+            color: #9ca3af;
+        }
     </style>
 </head>
 <body class="h-full antialiased text-gray-800 p-4 sm:p-8">
@@ -37,40 +42,48 @@
     <div class="max-w-7xl mx-auto h-full flex flex-col">
         <!-- Header -->
         <header class="mb-4">
-            <h1 class="text-3xl sm:text-4xl font-extrabold text-indigo-700">Sanskrit (SKT) WASM Processor</h1>
-            <p class="text-gray-600 mt-2">Run the `skt.c` LaTeX pre-processor, compiled to WebAssembly, directly in your browser.</p>
+            <h1 class="text-3xl sm:text-4xl font-extrabold text-indigo-700">Online SKT Pre-processor</h1>
+            <p class="text-gray-600 mt-2 text-justify">Run the <code>skt.c</code> pre-processor from the LaTeX <a href="https://ctan.org/tex-archive/language/sanskrit" class="text-blue-600 hover:text-blue-800 hover:underline"><code>sanskrit</code></a> package directly in your browser.</p>
         </header>
-
-        <!-- Control Panel -->
-        <div class="mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-3 sm:space-y-0 bg-white p-4 rounded-xl shadow-lg">
-            <div id="status-message" class="flex items-center space-x-3">
-                <div id="status-indicator" class="w-4 h-4 rounded-full bg-yellow-400 animate-pulse"></div>
-                <span class="text-sm font-medium text-gray-700">Status: Waiting for WASM module...</span>
-            </div>
-            <button id="process-button" 
-                    disabled
-                    class="w-full sm:w-auto px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 transition duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed">
-                <svg id="button-spinner" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                <span id="button-text">Process Text</span>
-            </button>
-        </div>
 
         <!-- Main Content: Editors -->
         <main class="flex-grow grid grid-cols-1 lg:grid-cols-2 gap-6 h-full min-h-[60vh]">
             
             <!-- Input Area -->
             <div class="flex flex-col bg-white p-4 rounded-xl shadow-lg">
-                <div class="flex justify-between items-center mb-2">
-                    <label for="input-text" class="text-lg font-semibold text-gray-800">Input SKT</label>
+                <label for="input-text" class="text-lg font-semibold text-gray-800 mb-3">Input SKT</label>
+                
+                <!-- Input Control Widgets -->
+                <div class="flex flex-row gap-2 mb-3">
+                    <select id="sample-selector" class="flex-1 px-3 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition cursor-pointer">
+                        <option value="">Load Sample...</option>
+                        <option value="devnag">Basic Devanagiri</option>
+                        <option value="english">English Transliteration</option>
+                        <option value="rg-veda">Rg Veda</option>
+                        <option value="sama-veda">Sama Veda</option>
+                    </select>
+                    <button id="upload-file-button" class="flex-1 px-3 py-2 text-sm bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg transition whitespace-nowrap">
+                        Upload
+                    </button>
+                    <input type="file" id="file-input" accept=".skt,.tex,.txt" class="hidden">
+                    <button id="process-button" disabled class="flex-1 px-3 py-2 text-sm bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1 whitespace-nowrap">
+                        <svg id="button-spinner" class="animate-spin h-4 w-4 text-white hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span id="button-text">Process</span>
+                    </button>
+                </div>
+                
+                <!-- Copy icon for input textarea -->
+                <div class="flex justify-end mb-2">
                     <button id="copy-input-icon" title="Copy to clipboard" class="text-gray-500 hover:text-gray-700 transition">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
                         </svg>
                     </button>
                 </div>
+                
                 <textarea id="input-text"
                     class="w-full flex-grow p-4 border border-gray-300 rounded-lg focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition duration-150 ease-in-out text-sm font-mono resize-none"
                     placeholder="Paste your .skt file content here... Example:
@@ -89,19 +102,43 @@
 
             <!-- Output Area -->
             <div class="flex flex-col bg-white p-4 rounded-xl shadow-lg">
-                <div class="flex justify-between items-center mb-2">
-                    <label for="output-text" class="text-lg font-semibold text-gray-800">Output LaTeX</label>
+                <label for="output-text" class="text-lg font-semibold text-gray-800 mb-3">Output LaTeX</label>
+                
+                <!-- Output Control Widgets -->
+                <div class="flex flex-row gap-2 mb-3">
+                    <button id="download-output-button" class="px-3 py-2 text-sm bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition whitespace-nowrap flex items-center justify-center gap-1">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                        </svg>
+                        <span>Download</span>
+                    </button>
+                </div>
+                
+                <!-- Copy icon for output textarea -->
+                <div class="flex justify-end mb-2">
                     <button id="copy-output-icon" title="Copy to clipboard" class="text-gray-500 hover:text-gray-700 transition">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
                         </svg>
                     </button>
                 </div>
-                <textarea id="output-text" readonly
-                    class="w-full flex-grow p-4 border border-gray-300 rounded-lg bg-gray-50 text-gray-700 text-sm font-mono resize-none"
-                    placeholder="Processed LaTeX output will appear here..."></textarea>
+                
+                <!-- Output editor container -->
+                <div class="relative flex-grow overflow-hidden rounded-lg border border-gray-300 bg-gray-50">
+                    <textarea id="output-text" readonly
+                        class="w-full h-full p-4 border-0 bg-gray-50 text-gray-700 text-sm font-mono resize-none focus:outline-none"
+                        placeholder="Processed LaTeX output will appear here..."></textarea>
+                </div>
             </div>
         </main>
+
+        <!-- Status Bar -->
+        <div class="mt-4 flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-3 sm:space-y-0 bg-white p-4 rounded-xl shadow-lg">
+            <div id="status-message" class="flex items-center space-x-3">
+                <div id="status-indicator" class="w-4 h-4 rounded-full bg-yellow-400 animate-pulse"></div>
+                <span class="text-sm font-medium text-gray-700">Status: Waiting for WASM module...</span>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -178,11 +215,137 @@
 
         // Initialize editors
         initEditors();
+        
+        // Set initial placeholder text for output textarea
+        outputTextarea.value = '';
+        
         const statusMessage = document.getElementById('status-message').querySelector('span');
         const statusIndicator = document.getElementById('status-indicator');
         const processButton = document.getElementById('process-button');
         const buttonText = document.getElementById('button-text');
         const buttonSpinner = document.getElementById('button-spinner');
+        const loadSampleButton = document.getElementById('load-sample-button');
+        const uploadFileButton = document.getElementById('upload-file-button');
+        const fileInput = document.getElementById('file-input');
+        const downloadOutputButton = document.getElementById('download-output-button');
+        const sampleSelector = document.getElementById('sample-selector');
+
+        // Sample SKT content library
+        const sampleSkts = {
+            "devnag": `\\documentclass[12pt]{article}
+\\usepackage[larger,iitalic,uitalic]{skt}
+\\begin{document}
+{\\sktb te_ja_svi naa_vadhii!tamastu|}
+
+{\\skt te_ja_svi naa_vadhii!tamastu|} 
+
+{\\sktf te_ja_svi naa_vadhii!tamastu|}
+
+{\\sktbs te_ja_svi naa_vadhii!tamastu|}
+
+{\\skts te_ja_svi naa_vadhii!tamastu|} 
+
+{\\sktfs te_ja_svi naa_vadhii!tamastu|}
+\\end{document}`,
+            "english": `\\documentclass[12pt]{article}
+\\usepackage[larger,iitalic,uitalic]{skt}
+\\begin{document}
+{\\skt [6+]}
+
+{\\sktx te_ja_svi naa_vadhii!tamastu|}
+
+{\\sktX te_ja_svi naa_vadhii!tamastu|}
+
+{\\skti te_ja_svi naa_vadhii!tamastu|}
+
+{\\sktI te_ja_svi naa_vadhii!tamastu|}
+
+{\\skti tejasvi\' naava\'dhii\'tamastu|}
+
+{\\sktI Bhaarate Raamo vasati}
+\\end{document}`,
+            "rg-veda": `\\documentclass[12pt]{article}
+\\usepackage[larger,iitalic,uitalic]{skt}
+\\begin{document}
+{\\skt [40+ 44+]
+a_ha.m 
+  ru_drebhi_rvasu!bhi"scaraamya_hamaa!di_tyairu_ta 
+  vi_"svade!vai.h|\\\\
+a_ha.m mi_traavaru!.no_bhaa
+  bi!bharmya_hami!ndraa_gnii 
+  a_hama_"svino_bhaa|| 1||
+
+a_ha.m soma!maaha_nasa!.m bibharmya_ha.m 
+  tva.s.taa!ramu_ta puu_.sa.na_.m bhaga!m|\\\\
+a_ha.m da!dhaami_ dravi!.na.m ha_vi.sma!te 
+  supraa_vye"3 yaja!maanaaya sunva_te|| 2||
+}
+\\end{document}`,
+            "sama-veda": `\\documentclass[12pt]{article}
+\\usepackage[larger,iitalic,uitalic]{skt}
+\\begin{document}
+{\\skt [0- 2+ 5+ 8+ 9+ 10+ 40+ 41+ 44+ 112+ 166+]}
+
+{\\skt 
+pra<1> tu dra<2r>va<3> pa<2>ri<3> ko<2>"sa<3>.m ni<1> 
+   .sii<2>da<3> n.r<1>bhi<2>.h punaa<3>no<2> a<3>bhi<1> 
+   vaaja<2r>mar.sa| \\
+a<2>"sva<3>.m na<1> tvaa<2> vaa<3>ji<1>na<2>.m 
+   ma<3>rja<2>ya<3>nto<1>.acchaa<2> va<3>rhii<1> 
+   ra<2>"sa<3>naa<1>bhi<2>rnayanti|| 523||}
+\\end{document}`
+        };
+
+        // Sample selector change handler
+        sampleSelector.addEventListener('change', (e) => {
+            if (e.target.value && sampleSkts[e.target.value]) {
+                const content = sampleSkts[e.target.value];
+                if (inputEditor && typeof inputEditor.setValue === 'function') {
+                    inputEditor.setValue(content);
+                } else {
+                    inputTextarea.value = content;
+                }
+                // Reset dropdown
+                e.target.value = '';
+            }
+        });
+
+        // Upload file button
+        uploadFileButton.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        // Handle file upload
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    if (inputEditor && typeof inputEditor.setValue === 'function') {
+                        inputEditor.setValue(event.target.result);
+                    } else {
+                        inputTextarea.value = event.target.result;
+                    }
+                };
+                reader.readAsText(file);
+            }
+        });
+
+        // Download output button
+        downloadOutputButton.addEventListener('click', () => {
+            const text = (outputEditor && typeof outputEditor.getValue === 'function')
+                ? outputEditor.getValue()
+                : outputTextarea.value;
+            if (text) {
+                const blob = new Blob([text], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'output.tex';
+                a.click();
+                URL.revokeObjectURL(url);
+            }
+        });
 
         // Copy icon event listeners
         function showCopyFeedback(buttonId) {
@@ -236,6 +399,7 @@
                 statusIndicator.classList.remove('bg-yellow-400', 'animate-pulse');
                 statusIndicator.classList.add('bg-green-500');
                 processButton.disabled = false;
+                uploadFileButton.disabled = false;
                 console.log('Emscripten runtime initialized.');
             }
         };
