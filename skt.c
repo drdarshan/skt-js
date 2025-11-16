@@ -168,6 +168,8 @@ main(int argc,
   for (k=0; k<total_options+1; k++) option[k] = FALSE; /* disable everything  */
 
   printf("SKT.C Version 2.2.4 2022-09-24\n");
+  printf("argc = %d\n",argc);
+  for(k=0; k<argc; k++) printf("argv[%d] = %s\n",k,argv[k]);
 
 #if (DEBUG == 0)
 
