@@ -43,7 +43,8 @@ jobs:
           -s WASM=1 \
           -s ALLOW_MEMORY_GROWTH=1 \
           -s INVOKE_RUN=0 \
-          -Os
+          -s EXPORTED_RUNTIME_METHODS="['callMain','FS']" \
+          -O3
 
     - name: Copy artifacts to dist
       run: |
