@@ -48,8 +48,10 @@ jobs:
 
     - name: Copy artifacts to dist
       run: |
-        # Copy skt.html as index.html and update CSS path
-        sed 's|href="dist/output.css"|href="output.css"|g' skt.html > dist/index.html
+        # Copy skt.html and update CSS path for dist folder
+        sed 's|href="dist/output.css"|href="output.css"|g' skt.html > dist/skt.html
+        # Also create index.html pointing to skt.html
+        cp dist/skt.html dist/index.html
         cp -r src/input.css dist/ 2>/dev/null || true
         [ -f package.json ] && cp package.json dist/ || true
         [ -f tailwind.config.js ] && cp tailwind.config.js dist/ || true
