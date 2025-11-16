@@ -53,3 +53,7 @@ dkms.conf
 
 # debug information files
 *.dwo
+
+# Node dependencies
+node_modules/
+package-lock.json

@@ -1,0 +1,57 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+
+    - name: Install npm dependencies
+      run: npm install
+
+    - name: Build Tailwind CSS
+      run: npm run build:css
+
+    - name: Setup Emscripten
+      uses: mymindstorm/setup-emsdk@v12
+      with:
+        version: latest
+
+    - name: Create dist directory
+      run: mkdir -p dist
+
+    - name: Compile WASM from skt.c
+      run: |
+        emcc skt.c -o dist/skt.js \
+          -s WASM=1 \
+          -s ALLOW_MEMORY_GROWTH=1 \
+          -s INVOKE_RUN=0 \
+          -Os
+
+    - name: Copy artifacts to dist
+      run: |
+        cp skt.html dist/
+        cp -r src/input.css dist/ 2>/dev/null || true
+        [ -f package.json ] && cp package.json dist/ || true
+        [ -f tailwind.config.js ] && cp tailwind.config.js dist/ || true
+
+    - name: Commit and push if changed
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add dist/
+        git diff --quiet && git diff --staged --quiet || (git commit -m "Build: Compile Tailwind CSS and WASM artifacts" && git push)
+

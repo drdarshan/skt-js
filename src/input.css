@@ -1,0 +1,51 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500&family=Inter:wght@100..900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: #f3f4f6; /* cool-gray-100 */
+}
+
+/* Monospace font for code and editors */
+textarea, .CodeMirror {
+    font-family: 'Roboto Mono', monospace !important;
+    font-size: 14px;
+    line-height: 1.6;
+    letter-spacing: 0.3px;
+}
+
+/* Custom scrollbar for a cleaner look in textareas */
+textarea::-webkit-scrollbar { width: 6px; }
+textarea::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+textarea::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 10px; }
+textarea::-webkit-scrollbar-thumb:hover { background: #a1a1a1; }
+
+/* Placeholder styling */
+textarea::placeholder {
+    color: #9ca3af;
+}
+
+/* CodeMirror container constraints */
+.CodeMirror {
+    height: 100% !important;
+}
+
+.editor-container {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+}
+
+/* GitHub ribbon styling */
+.github-ribbon {
+    position: fixed;
+    top: 0;
+    right: 0;
+    border: 0;
+    z-index: 50;
+}
