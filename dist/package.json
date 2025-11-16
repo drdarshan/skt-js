@@ -1,0 +1,18 @@
+{
+  "name": "skt-js",
+  "version": "1.0.0",
+  "description": "Online SKT Pre-processor - Run the skt.c pre-processor from the LaTeX sanskrit package directly in your browser",
+  "main": "skt.js",
+  "scripts": {
+    "build:css": "tailwindcss -i ./src/input.css -o ./dist/output.css",
+    "watch:css": "tailwindcss -i ./src/input.css -o ./dist/output.css --watch",
+    "build": "npm run build:css",
+    "dev": "npm run watch:css"
+  },
+  "keywords": ["sanskrit", "latex", "skt", "preprocessor"],
+  "author": "drdarshan",
+  "license": "MIT",
+  "devDependencies": {
+    "tailwindcss": "^3.3.0"
+  }
+}

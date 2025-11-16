@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Online SKT Processor</title>
+    <link rel="stylesheet" href="dist/output.css">
+    <!-- CodeMirror 5 (classic) for LaTeX syntax highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/hint/show-hint.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/stex/stex.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/hint/show-hint.min.js"></script>
+    <style>
+        /* CodeMirror container constraints */
+        .CodeMirror {
+            height: 100% ;
+        }
+        
+        .editor-container {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            min-height: 0;
+            overflow: hidden;
+        }
+        
+        /* GitHub ribbon styling */
+        .github-ribbon {
+            position: fixed;
+            top: 0;
+            right: 0;
+            border: 0;
+            z-index: 50;
+        }
+    </style>
+</head>
+<body class="h-full antialiased text-gray-800 p-4 sm:p-8">
+    <a href="https://github.com/drdarshan/skt-js" class="github-ribbon" target="_blank" rel="noopener noreferrer">
+        <img loading="lazy" decoding="async" width="149" height="149" src="https://github.blog/wp-content/uploads/2008/12/forkme_right_green_007200.png" alt="Fork me on GitHub">
+    </a>
+
+    <div class="max-w-7xl mx-auto h-full flex flex-col">
+        <!-- Header -->
+        <header class="mb-4">
+            <h1 class="text-3xl sm:text-4xl font-extrabold text-indigo-700">Online SKT Pre-processor</h1>
+            <p class="text-gray-600 mt-2 text-justify">Run the <code>skt.c</code> pre-processor from the LaTeX <a href="https://ctan.org/tex-archive/language/sanskrit" class="text-blue-600 hover:text-blue-800 hover:underline"><code>sanskrit</code></a> package directly in your browser.</p>
+        </header>
+
+        <!-- Main Content: Editors -->
+        <main class="flex-grow grid grid-cols-1 lg:grid-cols-2 gap-6 h-full min-h-[60vh]">
+            
+            <!-- Input Area -->
+            <div class="flex flex-col bg-white p-4 rounded-xl shadow-lg overflow-hidden">
+                <label for="input-text" class="text-lg font-semibold text-gray-800 mb-3">Input SKT</label>
+                
+                <!-- Input Control Widgets -->
+                <div class="flex flex-row gap-2 mb-3">
+                    <select id="sample-selector" class="flex-1 px-3 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition cursor-pointer">
+                        <option value="">Load Sample...</option>
+                        <option value="devnag">Basic Devanagiri</option>
+                        <option value="english">English Transliteration</option>
+                        <option value="rg-veda">Rg Veda</option>
+                        <option value="sama-veda">Sama Veda</option>
+                    </select>
+                    <button id="upload-file-button" class="flex-1 px-3 py-2 text-sm bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg transition whitespace-nowrap">
+                        Upload
+                    </button>
+                    <input type="file" id="file-input" accept=".skt,.tex,.txt" class="hidden">
+                    <button id="process-button" disabled class="flex-1 px-3 py-2 text-sm bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1 whitespace-nowrap">
+                        <svg id="button-spinner" class="animate-spin h-4 w-4 text-white hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span id="button-text">Process</span>
+                    </button>
+                </div>
+                
+                <!-- Copy icon for input textarea -->
+                <div class="flex justify-end mb-2">
+                    <button id="copy-input-icon" title="Copy to clipboard" class="text-gray-500 hover:text-gray-700 transition">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                        </svg>
+                    </button>
+                </div>
+                
+                <div class="editor-container">
+                <textarea id="input-text"
+                    class="w-full h-full p-4 border border-gray-300 rounded-lg focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition duration-150 ease-in-out text-sm font-mono resize-none"
+                    placeholder="Paste your .skt file content here... Example:
+\documentclass[12pt]{article}
+\usepackage[larger,iitalic,uitalic]{skt}
+\begin{document}
+{\skt te_ja_svi naa_vadhii!tamastu|}
+\end{document}
+">\documentclass[12pt]{article}
+\usepackage[larger,iitalic,uitalic]{skt}
+\begin{document}
+{\sktb te_ja_svi naa_vadhii!tamastu|}
+\end{document}
+</textarea>
+                </div>
+            </div>
+
+            <!-- Output Area -->
+            <div class="flex flex-col bg-white p-4 rounded-xl shadow-lg overflow-hidden">
+                <label for="output-text" class="text-lg font-semibold text-gray-800 mb-3">Output LaTeX</label>
+                
+                <!-- Output Control Widgets -->
+                <div class="flex flex-row gap-2 mb-3">
+                    <button id="download-output-button" class="px-3 py-2 text-sm bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition whitespace-nowrap flex items-center justify-center gap-1">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                        </svg>
+                        <span>Download</span>
+                    </button>
+                </div>
+                
+                <!-- Copy icon for output textarea -->
+                <div class="flex justify-end mb-2">
+                    <button id="copy-output-icon" title="Copy to clipboard" class="text-gray-500 hover:text-gray-700 transition">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                        </svg>
+                    </button>
+                </div>
+                
+                <!-- Output editor container -->
+                <div class="editor-container rounded-lg border border-gray-300 bg-gray-50">
+                    <textarea id="output-text" readonly
+                        class="w-full h-full p-4 border-0 bg-gray-50 text-gray-700 text-sm font-mono resize-none focus:outline-none"
+                        placeholder="Processed LaTeX output will appear here..."></textarea>
+                </div>
+            </div>
+        </main>
+
+        <!-- Status Bar -->
+        <div class="mt-4 flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-3 sm:space-y-0 bg-white p-4 rounded-xl shadow-lg">
+            <div id="status-message" class="flex items-center space-x-3">
+                <div id="status-indicator" class="w-4 h-4 rounded-full bg-yellow-400 animate-pulse"></div>
+                <span class="text-sm font-medium text-gray-700">Status: Waiting for WASM module...</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- WASM SCRIPTING ---
+
+        const inputTextarea = document.getElementById('input-text');
+        const outputTextarea = document.getElementById('output-text');
+        // CodeMirror 5 editor instances (or null if fallback to textareas)
+        let inputEditor = null;
+        let outputEditor = null;
+
+        // Initialize CodeMirror 5 (classic) editors. Falls back to plain textareas if CM5 not available.
+        function initEditors() {
+            try {
+                if (typeof CodeMirror !== 'undefined') {
+                    // LaTeX command list for autocomplete
+                    const latexCommands = [
+                        'documentclass','usepackage','begin','end','section','subsection','caption',
+                        'label','ref','cite','emph','textbf','textit','item','itemize','enumerate',
+                        'skt','sktb','sktx','sktX','sktt','author','title','date','maketitle',
+                        'table','figure','includegraphics','footnote','mathrm','mathbf','mathbb'
+                    ];
+
+                    function latexHint(cm) {
+                        const cur = cm.getCursor();
+                        const line = cm.getLine(cur.line);
+                        let start = cur.ch;
+                        // find start of command (backslash)
+                        while (start > 0 && /[A-Za-z]/.test(line.charAt(start-1))) start--;
+                        if (start > 0 && line.charAt(start-1) === '\\') {
+                            const from = {line: cur.line, ch: start-1};
+                            const to = cur;
+                            const prefix = line.slice(start, cur.ch);
+                            const list = latexCommands
+                                .filter(c => c.indexOf(prefix) === 0)
+                                .map(c => ({text: '\\' + c, displayText: '\\' + c}));
+                            return {list: list.length ? list : latexCommands.map(c=>({text:'\\'+c,displayText:'\\'+c})), from, to};
+                        }
+                        return {list: [], from: cur, to: cur};
+                    }
+
+                    inputEditor = CodeMirror.fromTextArea(inputTextarea, {
+                        mode: 'stex',
+                        lineNumbers: true,
+                        lineWrapping: true,
+                        indentUnit: 2,
+                        extraKeys: { 'Ctrl-Space': function(cm) { CodeMirror.showHint(cm, latexHint, {completeSingle: false}); } },
+                        hintOptions: { hint: latexHint, completeSingle: false }
+                    });
+                    // trigger autocomplete on typing after backslash or letters
+                    inputEditor.on('inputRead', function(cm, change) {
+                        if (change.text[0] && /[A-Za-z\\]/.test(change.text[0])) {
+                            CodeMirror.showHint(cm, latexHint, {completeSingle: false});
+                        }
+                    });
+                    outputEditor = CodeMirror.fromTextArea(outputTextarea, {
+                        mode: 'stex',
+                        lineNumbers: true,
+                        lineWrapping: true,
+                        readOnly: true,
+                    });
+                    // Ensure editors fill available space
+                    try { inputEditor.setSize('100%', '100%'); } catch (e) {}
+                    try { outputEditor.setSize('100%', '100%'); } catch (e) {}
+                }
+            } catch (e) {
+                console.warn('CodeMirror 5 init failed, falling back to textareas', e);
+                inputEditor = null;
+                outputEditor = null;
+                inputTextarea.style.display = '';
+                outputTextarea.style.display = '';
+            }
+        }
+
+        // Initialize editors
+        initEditors();
+        
+        // Set initial placeholder text for output textarea
+        outputTextarea.value = '';
+        
+        const statusMessage = document.getElementById('status-message').querySelector('span');
+        const statusIndicator = document.getElementById('status-indicator');
+        const processButton = document.getElementById('process-button');
+        const buttonText = document.getElementById('button-text');
+        const buttonSpinner = document.getElementById('button-spinner');
+        const loadSampleButton = document.getElementById('load-sample-button');
+        const uploadFileButton = document.getElementById('upload-file-button');
+        const fileInput = document.getElementById('file-input');
+        const downloadOutputButton = document.getElementById('download-output-button');
+        const sampleSelector = document.getElementById('sample-selector');
+
+        // Sample SKT content library
+        const sampleSkts = {
+            "devnag": `\\documentclass[12pt]{article}
+\\usepackage[larger,iitalic,uitalic]{skt}
+\\begin{document}
+{\\sktb te_ja_svi naa_vadhii!tamastu|}
+
+{\\skt te_ja_svi naa_vadhii!tamastu|} 
+
+{\\sktf te_ja_svi naa_vadhii!tamastu|}
+
+{\\sktbs te_ja_svi naa_vadhii!tamastu|}
+
+{\\skts te_ja_svi naa_vadhii!tamastu|} 
+
+{\\sktfs te_ja_svi naa_vadhii!tamastu|}
+\\end{document}`,
+            "english": `\\documentclass[12pt]{article}
+\\usepackage[larger,iitalic,uitalic]{skt}
+\\begin{document}
+{\\skt [6+]}
+
+{\\sktx te_ja_svi naa_vadhii!tamastu|}
+
+{\\sktX te_ja_svi naa_vadhii!tamastu|}
+
+{\\skti te_ja_svi naa_vadhii!tamastu|}
+
+{\\sktI te_ja_svi naa_vadhii!tamastu|}
+
+{\\skti tejasvi\' naava\'dhii\'tamastu|}
+
+{\\sktI Bhaarate Raamo vasati}
+\\end{document}`,
+            "rg-veda": `\\documentclass[12pt]{article}
+\\usepackage[larger,iitalic,uitalic]{skt}
+\\begin{document}
+{\\skt [40+ 44+]
+a_ha.m 
+  ru_drebhi_rvasu!bhi"scaraamya_hamaa!di_tyairu_ta 
+  vi_"svade!vai.h|\\\\
+a_ha.m mi_traavaru!.no_bhaa
+  bi!bharmya_hami!ndraa_gnii 
+  a_hama_"svino_bhaa|| 1||
+
+a_ha.m soma!maaha_nasa!.m bibharmya_ha.m 
+  tva.s.taa!ramu_ta puu_.sa.na_.m bhaga!m|\\\\
+a_ha.m da!dhaami_ dravi!.na.m ha_vi.sma!te 
+  supraa_vye"3 yaja!maanaaya sunva_te|| 2||
+}
+\\end{document}`,
+            "sama-veda": `\\documentclass[12pt]{article}
+\\usepackage[larger,iitalic,uitalic]{skt}
+\\begin{document}
+{\\skt [0- 2+ 5+ 8+ 9+ 10+ 40+ 41+ 44+ 112+ 166+]}
+
+{\\skt 
+pra<1> tu dra<2r>va<3> pa<2>ri<3> ko<2>"sa<3>.m ni<1> 
+   .sii<2>da<3> n.r<1>bhi<2>.h punaa<3>no<2> a<3>bhi<1> 
+   vaaja<2r>mar.sa| \\
+a<2>"sva<3>.m na<1> tvaa<2> vaa<3>ji<1>na<2>.m 
+   ma<3>rja<2>ya<3>nto<1>.acchaa<2> va<3>rhii<1> 
+   ra<2>"sa<3>naa<1>bhi<2>rnayanti|| 523||}
+\\end{document}`
+        };
+
+        // Sample selector change handler
+        sampleSelector.addEventListener('change', (e) => {
+            if (e.target.value && sampleSkts[e.target.value]) {
+                const content = sampleSkts[e.target.value];
+                if (inputEditor && typeof inputEditor.setValue === 'function') {
+                    inputEditor.setValue(content);
+                } else {
+                    inputTextarea.value = content;
+                }
+                // Reset dropdown
+                e.target.value = '';
+            }
+        });
+
+        // Upload file button
+        uploadFileButton.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        // Handle file upload
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    if (inputEditor && typeof inputEditor.setValue === 'function') {
+                        inputEditor.setValue(event.target.result);
+                    } else {
+                        inputTextarea.value = event.target.result;
+                    }
+                };
+                reader.readAsText(file);
+            }
+        });
+
+        // Download output button
+        downloadOutputButton.addEventListener('click', () => {
+            const text = (outputEditor && typeof outputEditor.getValue === 'function')
+                ? outputEditor.getValue()
+                : outputTextarea.value;
+            if (text) {
+                const blob = new Blob([text], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'output.tex';
+                a.click();
+                URL.revokeObjectURL(url);
+            }
+        });
+
+        // Copy icon event listeners
+        function showCopyFeedback(buttonId) {
+            const button = document.getElementById(buttonId);
+            const svg = button.querySelector('svg');
+            const originalSvg = svg.outerHTML;
+            
+            // Change to checkmark icon
+            svg.outerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>';
+            button.classList.remove('text-gray-500', 'hover:text-gray-700');
+            button.classList.add('text-green-600');
+            
+            // Revert after 2 seconds
+            setTimeout(() => {
+                button.querySelector('svg').outerHTML = originalSvg;
+                button.classList.remove('text-green-600');
+                button.classList.add('text-gray-500', 'hover:text-gray-700');
+            }, 2000);
+        }
+
+        document.getElementById('copy-input-icon').addEventListener('click', () => {
+            const text = (inputEditor && typeof inputEditor.getValue === 'function')
+                ? inputEditor.getValue()
+                : inputTextarea.value;
+            navigator.clipboard.writeText(text).then(() => {
+                showCopyFeedback('copy-input-icon');
+            }).catch(err => console.error('Copy failed:', err));
+        });
+
+        document.getElementById('copy-output-icon').addEventListener('click', () => {
+            const text = (outputEditor && typeof outputEditor.getValue === 'function')
+                ? outputEditor.getValue()
+                : outputTextarea.value;
+            navigator.clipboard.writeText(text).then(() => {
+                showCopyFeedback('copy-output-icon');
+            }).catch(err => console.error('Copy failed:', err));
+        });
+
+        // Input/Output filenames for the virtual file system
+        const IN_FILENAME = "/input.skt";
+        const OUT_FILENAME = "/output.tex";
+        
+        // This `Module` object is read by the `skt.js` script.
+        // We set `noInitialRun: true` so the compiled program's main()
+        // is NOT invoked automatically on module load. The page will
+        // call `Module.callMain([...])` when the user clicks the button.
+        var Module = {
+            noInitialRun: true,
+            onRuntimeInitialized: function() {
+                statusMessage.textContent = 'Status: WASM Module Loaded. Ready.';
+                statusIndicator.classList.remove('bg-yellow-400', 'animate-pulse');
+                statusIndicator.classList.add('bg-green-500');
+                processButton.disabled = false;
+                uploadFileButton.disabled = false;
+                console.log('Emscripten runtime initialized.');
+            }
+        };
+
+        processButton.addEventListener('click', processSanskritText);
+
+        async function processSanskritText() {
+            setLoadingState(true);
+            if (outputEditor && typeof outputEditor.setValue === 'function') {
+                outputEditor.setValue('');
+            } else {
+                outputTextarea.value = '';
+            }
+
+            try {
+                const inputContent = (inputEditor && typeof inputEditor.getValue === 'function')
+                    ? inputEditor.getValue()
+                    : inputTextarea.value;
+                
+                // --- STEP 1: Write to Virtual File System ---
+                // Use the Emscripten 'FS' object to create a file in the 
+                // virtual memory that the C program can access.
+                Module.FS.writeFile(IN_FILENAME, inputContent);
+                statusMessage.textContent = 'Status: Wrote input.skt to virtual file system...';
+
+                // --- STEP 2: Call the C main() function ---
+                // We use ccall to run the compiled C main function.
+                // int main(int argc, char *argv[])
+                //
+                // We simulate the command: ./skt input.skt output.tex
+                // argc = 3
+                // argv = ["skt", "input.skt", "output.tex"]
+                
+                statusMessage.textContent = 'Status: Executing C main() function via WASM...';
+                
+                // Use Module.callMain to run the program with argv; we previously
+                // relied on Module.ccall which does not correctly construct argv
+                // for a C "main(int argc, char** argv)" in this build. Also,
+                // because we set noInitialRun above, the module won't auto-run.
+                let exitCode = 0;
+                try {
+                    Module.callMain([IN_FILENAME, OUT_FILENAME]);
+                } catch (e) {
+                    // Emscripten signals program exit by throwing an ExitStatus
+                    // object which includes a `status` property. Detect that and
+                    // treat it as the program's exit code; rethrow other errors.
+                    if (e && typeof e === 'object' && 'status' in e) {
+                        exitCode = e.status;
+                    } else {
+                        throw e;
+                    }
+                }
+
+                statusMessage.textContent = `Status: C program finished with exit code ${exitCode}.`;
+
+                if (exitCode !== 0) {
+                    throw new Error(`WASM program exited with non-zero code: ${exitCode}`);
+                }
+
+                // --- STEP 3: Read from Virtual File System ---
+                // The C program wrote its output to 'output.tex' in virtual memory.
+                // Now we read that file back out.
+                const outputContent = Module.FS.readFile(OUT_FILENAME, { encoding: 'utf8' });
+
+                if (outputEditor && typeof outputEditor.setValue === 'function') {
+                    outputEditor.setValue(outputContent);
+                } else {
+                    outputTextarea.value = outputContent;
+                }
+                statusMessage.textContent = 'Status: Success! Processed output.tex displayed.';
+                statusIndicator.classList.add('bg-green-500');
+                statusIndicator.classList.remove('bg-red-500');
+
+            } catch (error) {
+                const errMsg = `ERROR DURING PROCESSING:\n${error.message}\n\nCheck console (F12) for more details.`;
+                if (outputEditor && typeof outputEditor.setValue === 'function') {
+                    outputEditor.setValue(errMsg);
+                } else {
+                    outputTextarea.value = errMsg;
+                }
+                statusMessage.textContent = 'Status: Error occurred. Check output.';
+                statusIndicator.classList.add('bg-red-500');
+                statusIndicator.classList.remove('bg-green-500');
+                console.error("WASM Processing Error:", error);
+            } finally {
+                setLoadingState(false);
+                // Clean up virtual files
+                try {
+                    Module.FS.unlink(IN_FILENAME);
+                    Module.FS.unlink(OUT_FILENAME);
+                } catch (e) {
+                    // ignore cleanup errors
+                }
+            }
+        }
+        
+        function setLoadingState(isLoading) {
+            processButton.disabled = isLoading;
+            if (isLoading) {
+                buttonText.textContent = "Processing...";
+                buttonSpinner.classList.remove('hidden');
+                statusIndicator.classList.add('bg-yellow-400', 'animate-pulse');
+                 statusIndicator.classList.remove('bg-green-500', 'bg-red-500');
+            } else {
+                buttonText.textContent = "Process Text";
+                buttonSpinner.classList.add('hidden');
+                statusIndicator.classList.remove('bg-yellow-400', 'animate-pulse');
+            }
+        }
+
+    </script>
+
+    <!-- 
+      STEP 1: Load the Emscripten-generated JS file.
+      This file (skt.js) MUST be in the same directory as this HTML file.
+      It will automatically find and load 'skt.wasm'.
+      
+      FIX: This tag is moved *after* the inline script above,
+      so that the `Module` object is defined before this script runs.
+    -->
+    <script src="skt.js"></script>
+
+</body>
+</html>
